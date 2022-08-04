@@ -11,6 +11,7 @@ jax = "^0.3.15"
 equinox = "^0.5.6"
 einops = "^0.4.1"
 jaxlib = "^0.3.15"
+matplotlib = "^3.5.2"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
