@@ -3,8 +3,9 @@ import jax.numpy as jnp
 import jax.random as jrd
 import jax.nn as jnn
 import equinox as eqx
-from equinox.nn import LayerNorm, MLP
+import einops
 
+from equinox.nn import LayerNorm, MLP
 from jax import vmap, jit, grad
 from einops import rearrange, reduce, repeat
 
@@ -214,6 +215,35 @@ class MixerBlock3(eqx.Module):
         y = rearrange(y, "meso micro macro -> macro meso micro")
         return y
 
+class MixerBlock(eqx.Module):
+    patch_mixer: eqx.nn.MLP
+    hidden_mixer: eqx.nn.MLP
+    norm1: eqx.nn.LayerNorm
+    norm2: eqx.nn.LayerNorm
+
+    def __init__(
+        self, num_patches, hidden_size, mix_patch_size, mix_hidden_size, *, key
+    ):
+        tkey, ckey = jrd.split(key, 2)
+        self.patch_mixer = eqx.nn.MLP(
+            num_patches, num_patches, mix_patch_size, depth=1, key=tkey
+        )
+        self.hidden_mixer = eqx.nn.MLP(
+            hidden_size, hidden_size, mix_hidden_size, depth=1, key=ckey
+        )
+        self.norm1 = eqx.nn.LayerNorm((hidden_size, num_patches))
+        self.norm2 = eqx.nn.LayerNorm((num_patches, hidden_size))
+
+    def __call__(self, y):
+        ps(y)
+        y = y + jax.vmap(self.patch_mixer)(self.norm1(y))
+        y = einops.rearrange(y, "c p -> p c")
+        ps(y)
+        y = y + jax.vmap(self.hidden_mixer)(self.norm2(y))
+        y = einops.rearrange(y, "p c -> c p")
+        return y
+
+
 
 MixerBlock3([4, 4, 4], [32, 32, 16], key=key)
 
@@ -253,8 +283,26 @@ class MixerBlockND(eqx.Module):
             y = rearrange(y, "... d  -> d ...")
         return y
 
-    dim_sizes = [2, 4, 6, 8]
-    jnp.transpose(
-        dim_sizes,
-    )
-    cyclic_permutations(dim_sizes)
+dim_sizes = [2, 4]
+cyclic_permutations(dim_sizes)
+
+MB = MixerBlockND(dim_sizes, jnp.repeat(4, len(dim_sizes)), key=key)
+TestMB = MixerBlock(dim_sizes[0], 2, dim_sizes[1], 2, key=key)
+MB()
+
+y = jrd.uniform(key, (dim_sizes))
+TestMB(y)
+MB(y)
+
+keys = jrd.split(key, len(dim_sizes))
+width_sizes = jnp.repeat(2, 4)
+mixers = [
+    eqx.nn.MLP(dim_size, dim_size, width_size, depth=1, key=key)
+    for dim_size, width_size, key in zip(dim_sizes, width_sizes, keys)
+]
+norms = [eqx.nn.LayerNorm(dims) for dims in cyclic_permutations(dim_sizes)]
+
+for mixer, norm in zip(mixers, norms):
+    print(mixer)
+    y = vmap(vmap(mixer))(norm(y)) + y
+    y = rearrange(y, "... d  -> d ...")
