@@ -6,7 +6,7 @@ import jax.random as jr
 import equinox as eqx
 
 
-class MultiScaleMixerBlock(eqx.Module):
+class MultiscaleMixerBlock(eqx.Module):
     mixers: list
     norms: list
 

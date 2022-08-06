@@ -22,7 +22,7 @@ import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
 
-from multiscalemixer import MultiScaleMixerBlock
+from multiscalemixer import MultiscaleMixerBlock
 
 
 class Mixer2d(eqx.Module):
@@ -57,7 +57,7 @@ class Mixer2d(eqx.Module):
             hidden_size, input_size, patch_size, stride=patch_size, key=outkey
         )
         self.blocks = [
-            MultiScaleMixerBlock(
+            MultiscaleMixerBlock(
                 [num_patches, hidden_size], [mix_patch_size, mix_hidden_size], key=bkey
             )
             for bkey in bkeys
