@@ -7,7 +7,6 @@
 import array
 import functools as ft
 import gzip
-import itertools
 import os
 import struct
 import urllib.request
