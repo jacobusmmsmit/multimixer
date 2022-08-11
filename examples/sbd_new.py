@@ -119,7 +119,7 @@ class MixerNd(eqx.Module):
             )
             for bkey in bkeys
         ]
-        self.norm = eqx.nn.LayerNorm((hidden_size, num_patches))
+        self.norm = eqx.nn.LayerNorm((hidden_size, *num_patches))
         self.t1 = t1
 
     def __call__(self, t, y):
