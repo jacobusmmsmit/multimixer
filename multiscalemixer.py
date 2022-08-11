@@ -10,27 +10,24 @@ class MultiscaleMixerBlock(eqx.Module):
     mixers: list
     norms: list
 
-    def __init__(self, dim_sizes, width_sizes, *, key, reverse_dims=True):
-        keys = jr.split(key, len(dim_sizes))
-        if reverse_dims:
-            _dim_sizes = list(reversed(dim_sizes))
-        else:
-            _dim_sizes = dim_sizes
+    def __init__(self, dimensions, mlp_widths, *, key):
+        assert len(dimensions) == len(mlp_widths)
+        mlp_keys = jr.split(key, len(dimensions))
         self.mixers = [
-            eqx.nn.MLP(dim_size, dim_size, width_size, depth=1, key=key)
-            for dim_size, width_size, key in zip(dim_sizes, width_sizes, keys)
+            eqx.nn.MLP(dim, dim, mlp_width, depth=1, key=mlp_key)
+            for dim, mlp_width, mlp_key in reversed(
+                list(zip(dimensions, mlp_widths, mlp_keys))
+            )
         ]
-        self.norms = [eqx.nn.LayerNorm(_dim_sizes) for _ in dim_sizes]
+        self.norms = [eqx.nn.LayerNorm(tuple(reversed(dimensions))) for _ in dimensions]
 
     def __call__(self, y):
+        # TODO: improve compilation time by structured control flow primitives
+        # for all i, we vmap mixer i over all other j dimensions
         N = len(self.mixers)
-        i = N - 1
-        # apply -i'th mixer/norm over i'th dimension
-        for mixer, norm in zip(self.mixers, self.norms):
+        for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
             f = mixer
-            # vmap over j'th dimension for all but i'th dimension
             for j in itertools.chain(range(i), range(i + 1, N)):
                 f = jax.vmap(f, j, j)
             y = y + f(norm(y))
-            i -= 1
         return y
