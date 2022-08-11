@@ -16,6 +16,8 @@ import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
 
+from helpers import divscan, arrange_patches
+
 
 class MixerBlock(eqx.Module):
     patch_mixer: eqx.nn.MLP
@@ -59,7 +61,6 @@ class MultiMixerBlock(eqx.Module):
 
     def __call__(self, y):
         # TODO: improve compilation time by structured control flow primitives
-        # lax.scan would be best, maybe impossible as mixer needs to change
         # for all i, we vmap mixer i over all other j dimensions
         N = len(self.mixers)
         for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
@@ -70,7 +71,7 @@ class MultiMixerBlock(eqx.Module):
         return y
 
 
-class Mixer2d(eqx.Module):
+class MixerNd(eqx.Module):
     conv_in: eqx.nn.Conv2d
     conv_out: eqx.nn.ConvTranspose2d
     blocks: list
@@ -80,9 +81,9 @@ class Mixer2d(eqx.Module):
     def __init__(
         self,
         img_size,
-        patch_size,
+        patch_sizes,
         hidden_size,
-        mix_patch_size,
+        mix_patch_sizes,
         mix_hidden_size,
         num_blocks,
         t1,
@@ -90,24 +91,34 @@ class Mixer2d(eqx.Module):
         key,
     ):
         input_size, height, width = img_size
-        assert (height % patch_size) == 0
-        assert (width % patch_size) == 0
-        num_patches = (height // patch_size) * (width // patch_size)
+
+        # assert (height % patch_size) == 0
+        # assert (width % patch_size) == 0
+        assert (height % jnp.prod(patch_sizes)) == 0
+        assert (width % jnp.prod(patch_sizes)) == 0
+
+        # num_patches = (height // patch_size) * (width // patch_size)
+        num_patches = jax.vmap(lambda size: (height * width) // (size**2))(
+            patch_sizes
+        )
+        num_patches_hierarchical = divscan((height * width), patch_sizes**2)
+
         inkey, outkey, *bkeys = jr.split(key, 2 + num_blocks)
 
+        smallest_patch_size = int(patch_sizes[-1])
         self.conv_in = eqx.nn.Conv2d(
-            input_size + 1, hidden_size, patch_size, stride=patch_size, key=inkey
+            input_size + 1, hidden_size, smallest_patch_size, stride=smallest_patch_size, key=inkey
         )
         self.conv_out = eqx.nn.ConvTranspose2d(
-            hidden_size, input_size, patch_size, stride=patch_size, key=outkey
+            hidden_size, input_size, smallest_patch_size, stride=smallest_patch_size, key=outkey
         )
         self.blocks = [
             MultiMixerBlock(
-                [num_patches, hidden_size], [mix_patch_size, mix_hidden_size], key=bkey
+                (*num_patches, hidden_size), (*mix_patch_sizes, mix_hidden_size), key=bkey
             )
             for bkey in bkeys
         ]
-        self.norm = eqx.nn.LayerNorm((hidden_size, num_patches))
+        self.norm = eqx.nn.LayerNorm((hidden_size, *num_patches))
         self.t1 = t1
 
     def __call__(self, t, y):
@@ -234,11 +245,11 @@ def main(
     data_shape = data.shape[1:]
     data = (data - data_mean) / data_std
 
-    model = Mixer2d(
+    model = MixerNd(
         data_shape,
-        patch_size,
+        jnp.array([patch_size]),
         hidden_size,
-        mix_patch_size,
+        jnp.array([mix_patch_size]),
         mix_hidden_size,
         num_blocks,
         t1,
