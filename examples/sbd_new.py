@@ -16,7 +16,7 @@ import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
 
-from helpers import divscan, arrange_patches
+from helpers import divscan, arrange_patches, list_divscan
 
 
 class MixerBlock(eqx.Module):
@@ -39,6 +39,8 @@ class MixerBlock(eqx.Module):
         self.norm2 = eqx.nn.LayerNorm((hidden_size, num_patches))
 
     def __call__(self, y):
+        # first row = channel 1 from all the patches, each row is a single channel from all patches
+        # this operation takes each row and applies a patch mixing mlp to it, by mixing channels across patches
         y = y + jax.vmap(self.patch_mixer, 0, 0)(self.norm1(y))
         y = y + jax.vmap(self.hidden_mixer, 1, 1)(self.norm2(y))
         return y
@@ -49,15 +51,14 @@ class MultiMixerBlock(eqx.Module):
     norms: list
 
     def __init__(self, dimensions, mlp_widths, *, key):
+        # dimensions are put in from global to local
         assert len(dimensions) == len(mlp_widths)
         mlp_keys = jr.split(key, len(dimensions))
         self.mixers = [
             eqx.nn.MLP(dim, dim, mlp_width, depth=1, key=mlp_key)
-            for dim, mlp_width, mlp_key in reversed(
-                list(zip(dimensions, mlp_widths, mlp_keys))
-            )
+            for dim, mlp_width, mlp_key in zip(dimensions, mlp_widths, mlp_keys)
         ]
-        self.norms = [eqx.nn.LayerNorm(tuple(reversed(dimensions))) for _ in dimensions]
+        self.norms = [eqx.nn.LayerNorm(dimensions) for _ in dimensions]
 
     def __call__(self, y):
         # TODO: improve compilation time by structured control flow primitives
@@ -91,34 +92,34 @@ class MixerNd(eqx.Module):
         key,
     ):
         input_size, height, width = img_size
-
         # assert (height % patch_size) == 0
         # assert (width % patch_size) == 0
         assert (height % jnp.prod(patch_sizes)) == 0
         assert (width % jnp.prod(patch_sizes)) == 0
-
-        # num_patches = (height // patch_size) * (width // patch_size)
-        num_patches = jax.vmap(lambda size: (height * width) // (size**2))(
-            patch_sizes
-        )
-        num_patches_hierarchical = divscan((height * width), patch_sizes**2)
-
+        num_patches = [
+            (height // patch_size) * (width // patch_size) for patch_size in patch_sizes
+        ]
         inkey, outkey, *bkeys = jr.split(key, 2 + num_blocks)
 
-        smallest_patch_size = int(patch_sizes[-1])
         self.conv_in = eqx.nn.Conv2d(
-            input_size + 1, hidden_size, smallest_patch_size, stride=smallest_patch_size, key=inkey
+            input_size + 1,
+            hidden_size,
+            patch_sizes[-1],
+            stride=patch_sizes[-1],
+            key=inkey,
         )
         self.conv_out = eqx.nn.ConvTranspose2d(
-            hidden_size, input_size, smallest_patch_size, stride=smallest_patch_size, key=outkey
+            hidden_size, input_size, patch_sizes[-1], stride=patch_sizes[-1], key=outkey
         )
         self.blocks = [
             MultiMixerBlock(
-                (*num_patches, hidden_size), (*mix_patch_sizes, mix_hidden_size), key=bkey
+                [hidden_size, *num_patches],
+                [mix_hidden_size, *mix_patch_sizes],
+                key=bkey,
             )
             for bkey in bkeys
         ]
-        self.norm = eqx.nn.LayerNorm((hidden_size, *num_patches))
+        self.norm = eqx.nn.LayerNorm((hidden_size, num_patches))
         self.t1 = t1
 
     def __call__(self, t, y):
@@ -245,16 +246,17 @@ def main(
     data_shape = data.shape[1:]
     data = (data - data_mean) / data_std
 
-    model = MixerNd(
+    model = Mixer2d(
         data_shape,
-        jnp.array([patch_size]),
+        patch_size,
         hidden_size,
-        jnp.array([mix_patch_size]),
+        mix_patch_size,
         mix_hidden_size,
         num_blocks,
         t1,
         key=model_key,
     )
+
     int_beta = lambda t: t  # Try experimenting with other options here!
     weight = lambda t: 1 - jnp.exp(
         -int_beta(t)

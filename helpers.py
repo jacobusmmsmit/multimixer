@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from jax import lax
 
 
+
 def divscan(init, array, length=None, reverse=False, unroll=1):
     """
     Return a `floored` division scan on array, beginning with init.
@@ -34,3 +35,15 @@ def arrange_patches(img, num_heights, num_widths):
         )
     res = einops.rearrange(res, "h w ... -> (h w) ...")
     return res
+
+
+def list_divscan(init, xs):
+    """
+    Not using lax.scan as it returns a tracked array and I want a list
+    """
+    carry = init
+    ys = []
+    for x in xs:
+        carry //= x
+        ys.append(carry)
+    return jnp.stack(ys)
