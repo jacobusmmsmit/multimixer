@@ -1,12 +1,7 @@
-# This is the score based diffusion example from the equinox documentation
-# the difference is just that I've added the code for the multiscale-mixer,
-# changed the construction of the mixerblocks to construct multiscale-mixers
-# instead (and added square brackets where necessary to do so), and reduced the
-# number of training steps as I don't have a speedy GPU.
-
 import array
 import functools as ft
 import gzip
+import itertools
 import os
 import struct
 import urllib.request
@@ -16,12 +11,63 @@ import einops  # https://github.com/arogozhnikov/einops
 import jax
 import jax.numpy as jnp
 import jax.random as jr
+from jax import lax
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
 
-from multiscalemixer import MultiscaleMixerBlock
+from src.helpers import antivmap
+from functools import partial
+
+
+class MixerBlock(eqx.Module):
+    patch_mixer: eqx.nn.MLP
+    hidden_mixer: eqx.nn.MLP
+    norm1: eqx.nn.LayerNorm
+    norm2: eqx.nn.LayerNorm
+
+    def __init__(
+        self, num_patches, hidden_size, mix_patch_size, mix_hidden_size, *, key
+    ):
+        tkey, ckey = jr.split(key, 2)
+        self.patch_mixer = eqx.nn.MLP(
+            num_patches, num_patches, mix_patch_size, depth=1, key=tkey
+        )
+        self.hidden_mixer = eqx.nn.MLP(
+            hidden_size, hidden_size, mix_hidden_size, depth=1, key=ckey
+        )
+        self.norm1 = eqx.nn.LayerNorm((hidden_size, num_patches))
+        self.norm2 = eqx.nn.LayerNorm((hidden_size, num_patches))
+
+    def __call__(self, y):
+        y = y + jax.vmap(self.patch_mixer, 0, 0)(self.norm1(y))
+        y = y + jax.vmap(self.hidden_mixer, 1, 1)(self.norm2(y))
+        return y
+
+
+class MultiMixerBlock(eqx.Module):
+    mixers: list
+    norms: list
+
+    def __init__(self, dimensions, mlp_widths, *, key):
+        assert len(dimensions) == len(mlp_widths)
+        mlp_keys = jr.split(key, len(dimensions))
+        self.mixers = [
+            eqx.nn.MLP(dim, dim, mlp_width, depth=1, key=mlp_key)
+            for dim, mlp_width, mlp_key in reversed(
+                list(zip(dimensions, mlp_widths, mlp_keys))
+            )
+        ]
+        self.norms = [eqx.nn.LayerNorm(tuple(reversed(dimensions))) for _ in dimensions]
+
+    def __call__(self, y):
+        # TODO: improve compilation time by structured control flow primitives
+        # lax.scan would be best, maybe impossible as mixer needs to change
+        # for all i, we vmap mixer i over all other j dimensions
+        for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
+            y = y + antivmap(mixer, i)(norm(y))
+        return y
 
 
 class Mixer2d(eqx.Module):
@@ -56,7 +102,7 @@ class Mixer2d(eqx.Module):
             hidden_size, input_size, patch_size, stride=patch_size, key=outkey
         )
         self.blocks = [
-            MultiscaleMixerBlock(
+            MultiMixerBlock(
                 [num_patches, hidden_size], [mix_patch_size, mix_hidden_size], key=bkey
             )
             for bkey in bkeys
@@ -168,7 +214,7 @@ def main(
     num_blocks=4,
     t1=10.0,
     # Optimisation hyperparameters
-    num_steps=1_000,
+    num_steps=1_00,
     lr=3e-4,
     batch_size=256,
     print_every=10,
@@ -234,7 +280,6 @@ def main(
     plt.axis("off")
     plt.tight_layout()
     plt.show()
-    plt.savefig("sample.png")
 
 
 main()

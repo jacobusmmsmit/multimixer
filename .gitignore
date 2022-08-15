@@ -1,3 +1,5 @@
 .venv
 /data
 /__pycache__
+/pretty_pictures
+src/__pycache__

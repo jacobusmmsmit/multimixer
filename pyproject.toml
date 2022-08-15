@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "multiscale-mixer"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Jacobus Smit <jacobusmmsmit@gmail.com>"]
 license = "MIT"
@@ -8,7 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 jax = "^0.3.15"
-equinox = "^0.5.6"
+equinox = "^0.6.0"
 einops = "^0.4.1"
 jaxlib = "^0.3.15"
 matplotlib = "^3.5.2"
