@@ -6,6 +6,7 @@ import einops
 from src.multiscalemixer import MultiMixerBlock
 
 
+@eqx.filter_jit
 def multi_patch_rearrange(tensor, n_patches, patch_sizes):
     """
     tensor is of size (channels, width, height), leaves channel first, patches from large to small
@@ -18,6 +19,7 @@ def multi_patch_rearrange(tensor, n_patches, patch_sizes):
     return einops.rearrange(temp, "... hp wp -> ... (hp wp)")
 
 
+@eqx.filter_jit
 def reverse_multi_patch_rearrange(tensor, n_patches, patch_sizes):
     temp = einops.rearrange(
         tensor, "... (hp wp) -> ... hp wp", hp=patch_sizes[-1], wp=patch_sizes[-1]
