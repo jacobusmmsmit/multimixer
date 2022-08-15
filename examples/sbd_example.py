@@ -11,10 +11,14 @@ import einops  # https://github.com/arogozhnikov/einops
 import jax
 import jax.numpy as jnp
 import jax.random as jr
+from jax import lax
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
+
+from src.helpers import antivmap
+from functools import partial
 
 
 class MixerBlock(eqx.Module):
@@ -61,12 +65,8 @@ class MultiMixerBlock(eqx.Module):
         # TODO: improve compilation time by structured control flow primitives
         # lax.scan would be best, maybe impossible as mixer needs to change
         # for all i, we vmap mixer i over all other j dimensions
-        N = len(self.mixers)
         for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
-            f = mixer
-            for j in itertools.chain(range(i), range(i + 1, N)):
-                f = jax.vmap(f, j, j)
-            y = y + f(norm(y))
+            y = y + antivmap(mixer, i)(norm(y))
         return y
 
 

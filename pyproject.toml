@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "multiscale-mixer"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Jacobus Smit <jacobusmmsmit@gmail.com>"]
 license = "MIT"
