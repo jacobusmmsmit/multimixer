@@ -4,52 +4,17 @@ import equinox as eqx
 import einops
 
 from src.multiscalemixer import MultiMixerBlock
-
-
-@eqx.filter_jit
-def multi_patch_rearrange(tensor, n_patches, patch_sizes):
-    """
-    tensor is of size (channels, width, height), leaves channel first, patches from large to small
-    """
-    temp = tensor
-    for n, size in zip(n_patches, patch_sizes):
-        temp = einops.rearrange(
-            temp, "... (h hp) (w wp) -> ... (h w) hp wp", h=n, w=n, hp=size, wp=size
-        )
-    return einops.rearrange(temp, "... hp wp -> ... (hp wp)")
-
-
-@eqx.filter_jit
-def reverse_multi_patch_rearrange(tensor, n_patches, patch_sizes):
-    temp = einops.rearrange(
-        tensor, "... (hp wp) -> ... hp wp", hp=patch_sizes[-1], wp=patch_sizes[-1]
-    )
-    for n, size in reversed(list(zip(n_patches, patch_sizes))):
-        temp = einops.rearrange(
-            temp, "... (h w) hp wp -> ... (h hp) (w wp)", h=n, w=n, hp=size, wp=size
-        )
-    return temp
-
-
-def get_npatches(image_size, patch_sizes):
-    sizes = (image_size, *patch_sizes)
-    return [sizes[i] // sizes[i + 1] for i in range(len(sizes) - 1)]
-
-
-def verify_patches(image_size, patch_sizes, n_patches):
-    """
-    asserts that the current patch_size * n_patches is the size of the previous patch_size (or width)
-    e.g. for a 32 by 32 image with patch_sizes [8, 2] => we assert n_patches == [32//8 = 4, 8//2 = 4]
-    """
-    patches_ok = True
-    last_size = image_size
-    for s, n in zip(patch_sizes, n_patches):
-        patches_ok = patches_ok and (s * n == last_size)
-        last_size = s
-    return patches_ok
+from src.helpers import (
+    get_npatches,
+    verify_patches,
+    multi_patch_rearrange,
+    reverse_multi_patch_rearrange,
+)
 
 
 class Mixer(eqx.Module):
+    """An MLP-Mixer with multiple patch dimensions/scales"""
+
     img_size: list
     n_patches: list
     patch_sizes: list
@@ -70,6 +35,15 @@ class Mixer(eqx.Module):
         *,
         key,
     ):
+        """**Arguments**
+        - `img_size`: The size of the input.
+        - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole image for the first).
+        - `patch_sizes`: The side length of the square patches for each patch scale from largest to smallest.
+        - `hidden_size`: The number of channels each pixel will have during the mixing. A higher number potentially means more information can be transferred.
+        - `mix_patch_sizes`: The number of hidden layers in the MLP corresponding to each patch scale.
+        - `mix_hidden_size`: The number of hidden layers in the MLP corresponding to the "hidden" channels.
+        - `num_blocks`: The number of Mixer blocks an input will go through.
+        """
         channels, height, width = img_size
         assert height == width  # Currently square patches only, rectangular planned
         n_patches = get_npatches(width, patch_sizes)  # largest to smallest

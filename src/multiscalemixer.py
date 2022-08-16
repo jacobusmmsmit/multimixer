@@ -1,19 +1,22 @@
-import itertools
-
-import jax
 import jax.random as jr
 import equinox as eqx
 
 from src.helpers import antivmap
 
-# from helpers import antivmap
-
 
 class MultiMixerBlock(eqx.Module):
+    """Maps a different MLP over each dimension of the input from last to first."""
+
     mixers: list
     norms: list
 
     def __init__(self, dimensions, mlp_widths, *, key):
+        """**Arguments:**
+        - `dimensions`: The dimensions of the input and output.
+        - `mlp_widths`: The number of hidden layers of the MLP of each dimension.
+        - `key`: A `jax.random.PRNGKey` used to provide randomness for parameter
+            initialisation. (Keyword only argument.)
+        """
         # dimensions are put in from global to local
         assert len(dimensions) == len(mlp_widths)
         mlp_keys = jr.split(key, len(dimensions))
@@ -24,6 +27,9 @@ class MultiMixerBlock(eqx.Module):
         self.norms = [eqx.nn.LayerNorm(dimensions) for _ in dimensions]
 
     def __call__(self, y):
+        """**Arguments**
+        - `y`: The input. Should be of shape `(dimensions)`.
+        """
         # TODO: improve compilation time by structured control flow primitives
         # something like: lax.fori_loop(0, len(self.mixers), vmap(mixer[i], i, i)(norm[i]), y)
         # TODO: is this really the best way to apply the mixers in reverse? It only involves

@@ -1,12 +1,71 @@
+from typing import Callable
+
 import jax
-import einops
-
 import jax.numpy as jnp
+import einops
+import equinox as eqx
 
-from jax import lax
+
+@eqx.filter_jit
+def multi_patch_rearrange(tensor, n_patches, patch_sizes):
+    """
+    tensor is of size (channels, width, height), leaves channel first, patches from large to small
+    """
+    temp = tensor
+    for n, size in zip(n_patches, patch_sizes):
+        temp = einops.rearrange(
+            temp, "... (h hp) (w wp) -> ... (h w) hp wp", h=n, w=n, hp=size, wp=size
+        )
+    return einops.rearrange(temp, "... hp wp -> ... (hp wp)")
 
 
-def antivmap(fn, axis):
+@eqx.filter_jit
+def reverse_multi_patch_rearrange(tensor, n_patches, patch_sizes):
+    temp = einops.rearrange(
+        tensor, "... (hp wp) -> ... hp wp", hp=patch_sizes[-1], wp=patch_sizes[-1]
+    )
+    for n, size in reversed(list(zip(n_patches, patch_sizes))):
+        temp = einops.rearrange(
+            temp, "... (h w) hp wp -> ... (h hp) (w wp)", h=n, w=n, hp=size, wp=size
+        )
+    return temp
+
+
+def get_npatches(image_size, patch_sizes):
+    sizes = (image_size, *patch_sizes)
+    return [sizes[i] // sizes[i + 1] for i in range(len(sizes) - 1)]
+
+
+def verify_patches(image_size, patch_sizes, n_patches):
+    """
+    asserts that the current patch_size * n_patches is the size of the previous patch_size (or width)
+    e.g. for a 32 by 32 image with patch_sizes [8, 2] => we assert n_patches == [32//8 = 4, 8//2 = 4]
+    """
+    patches_ok = True
+    last_size = image_size
+    for s, n in zip(patch_sizes, n_patches):
+        patches_ok = patches_ok and (s * n == last_size)
+        last_size = s
+    return patches_ok
+
+
+def antivmap(fn: Callable, axis: int = 0) -> Callable:
+    """Returns a function which `vmap`s `fn` over all axes of its input except `axis`.
+
+    Example:
+    ```
+    import jax.numpy as jnp
+    import jax.random as jr
+    from equinox.nn import MLP
+
+    key = jr.PRNGKey(42)
+    unif_key, mlp_key = jr.split(key)
+    A = jr.uniform(unif_key, (10, 10, 5))
+    my_mlp = MLP(10, 10, width_size=20, depth=2, key=mlp_key)
+    antivmap(my_mlp)(A)
+    ```
+    """
+
     def wrapped_fn(x):
         op = fn
         for i in range(jnp.ndim(x)):
@@ -16,43 +75,6 @@ def antivmap(fn, axis):
         return op(x)
 
     return wrapped_fn
-
-
-def divscan(init, array, length=None, reverse=False, unroll=1):
-    """
-    Return a `floored` division scan on array, beginning with init.
-    """
-
-    def floored_div(result, element):
-        result = jnp.floor_divide(result, element)
-        return result, result
-
-    return lax.scan(floored_div, init, array, length, reverse, unroll)[1]
-
-
-def n_rearrange(img, num_heights, num_widths):
-    """
-    equivalent to einops.rearrange(img, 'c (h a?) (w b?) -> (h w) (?a ?b) ... (a b) c', a=nh, b=nw)
-    """
-    res = einops.rearrange(img, "c (h h0) (w w0) -> c h w")
-    for nw, nh in zip(num_heights, num_widths):
-        res = einops.rearrange(
-            res, "(h nh) (w nw) ... -> h w (nh nw) ...", nh=int(nh), nw=int(nw)
-        )
-    res = einops.rearrange(res, "h w ... -> (h w) ...")
-    return res
-
-
-def list_divscan(init, xs):
-    """
-    Not using lax.scan as it returns a tracked array and I want a list
-    """
-    carry = init
-    ys = []
-    for x in xs:
-        carry //= x
-        ys.append(carry)
-    return jnp.stack(ys)
 
 
 def scan(f, init, it):
