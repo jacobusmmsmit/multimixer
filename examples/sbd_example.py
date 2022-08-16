@@ -46,30 +46,6 @@ class MixerBlock(eqx.Module):
         return y
 
 
-class MultiMixerBlock(eqx.Module):
-    mixers: list
-    norms: list
-
-    def __init__(self, dimensions, mlp_widths, *, key):
-        assert len(dimensions) == len(mlp_widths)
-        mlp_keys = jr.split(key, len(dimensions))
-        self.mixers = [
-            eqx.nn.MLP(dim, dim, mlp_width, depth=1, key=mlp_key)
-            for dim, mlp_width, mlp_key in reversed(
-                list(zip(dimensions, mlp_widths, mlp_keys))
-            )
-        ]
-        self.norms = [eqx.nn.LayerNorm(tuple(reversed(dimensions))) for _ in dimensions]
-
-    def __call__(self, y):
-        # TODO: improve compilation time by structured control flow primitives
-        # lax.scan would be best, maybe impossible as mixer needs to change
-        # for all i, we vmap mixer i over all other j dimensions
-        for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
-            y = y + antivmap(mixer, i)(norm(y))
-        return y
-
-
 class Mixer2d(eqx.Module):
     conv_in: eqx.nn.Conv2d
     conv_out: eqx.nn.ConvTranspose2d
@@ -102,8 +78,8 @@ class Mixer2d(eqx.Module):
             hidden_size, input_size, patch_size, stride=patch_size, key=outkey
         )
         self.blocks = [
-            MultiMixerBlock(
-                [num_patches, hidden_size], [mix_patch_size, mix_hidden_size], key=bkey
+            MixerBlock(
+                num_patches, hidden_size, mix_patch_size, mix_hidden_size, key=bkey
             )
             for bkey in bkeys
         ]
@@ -214,7 +190,7 @@ def main(
     num_blocks=4,
     t1=10.0,
     # Optimisation hyperparameters
-    num_steps=1_00,
+    num_steps=1_000,
     lr=3e-4,
     batch_size=256,
     print_every=10,
@@ -258,6 +234,7 @@ def main(
     for step, data in zip(
         range(num_steps), dataloader(data, batch_size, key=loader_key)
     ):
+        print(f"{step=}")
         value, model, train_key, opt_state = make_step(
             model, weight, int_beta, data, t1, train_key, opt_state, opt.update
         )
@@ -280,6 +257,7 @@ def main(
     plt.axis("off")
     plt.tight_layout()
     plt.show()
+    plt.savefig("pretty_pictures/sample_original_1000.png")
 
 
 main()
