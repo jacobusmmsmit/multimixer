@@ -78,10 +78,17 @@ description = "GPU+autodiff-capable ODE/SDE/CDE solvers written in JAX."
 category = "main"
 optional = false
 python-versions = "~=3.7"
+develop = false
 
 [package.dependencies]
 equinox = ">=0.5.4"
 jax = ">=0.3.4"
+
+[package.source]
+type = "git"
+url = "https://github.com/jacobusmmsmit/diffrax"
+reference = "fix-jtu-warning"
+resolved_reference = "c56b143b35df0b2f4afbd56f6ea21a964909c9c0"
 
 [[package]]
 name = "dm-tree"
@@ -141,7 +148,7 @@ all = ["etils", "etils", "etils", "etils", "etils", "etils", "etils", "etils", "
 
 [[package]]
 name = "fonttools"
-version = "4.34.4"
+version = "4.35.0"
 description = "Tools to manipulate font files"
 category = "main"
 optional = false
@@ -428,7 +435,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "b66ebe7106abf6ac276afdc2d4787c5b11d629b8f0ee9120e7f4a987c4ca8966"
+content-hash = "47e590022a561611baefde8324c96f76ff2f6ade043987aa96551064edeb8366"
 
 [metadata.files]
 absl-py = [
@@ -476,10 +483,7 @@ cycler = [
     {file = "cycler-0.11.0-py3-none-any.whl", hash = "sha256:3a27e95f763a428a739d2add979fa7494c912a32c17c4c38c4d5f082cad165a3"},
     {file = "cycler-0.11.0.tar.gz", hash = "sha256:9c87405839a19696e837b3b818fed3f5f69f16f1eec1a1ad77e043dcea9c772f"},
 ]
-diffrax = [
-    {file = "diffrax-0.2.1-py3-none-any.whl", hash = "sha256:9dd338bc584ac1cf32220f48b831507342f1dbf28957f8ff81f409e0ff8a3ba1"},
-    {file = "diffrax-0.2.1.tar.gz", hash = "sha256:07806ad221d7c381da336e2689c88805bbce777408045a64046fe0924d2f67de"},
-]
+diffrax = []
 dm-tree = [
     {file = "dm-tree-0.1.7.tar.gz", hash = "sha256:30fec8aca5b92823c0e796a2f33b875b4dccd470b57e91e6c542405c5f77fd2a"},
     {file = "dm_tree-0.1.7-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3fae437135b6cbbdd51e96488a35e78c3617defa0b65265e7e8752d506f933fd"},
@@ -517,8 +521,8 @@ etils = [
     {file = "etils-0.7.1.tar.gz", hash = "sha256:207c097dd4180d5e5ab1c7b7ee78b7bf9471e12534deace23b1d392debd292f3"},
 ]
 fonttools = [
-    {file = "fonttools-4.34.4-py3-none-any.whl", hash = "sha256:d73f25b283cd8033367451122aa868a23de0734757a01984e4b30b18b9050c72"},
-    {file = "fonttools-4.34.4.zip", hash = "sha256:9a1c52488045cd6c6491fd07711a380f932466e317cb8e016fc4e99dc7eac2f0"},
+    {file = "fonttools-4.35.0-py3-none-any.whl", hash = "sha256:0292e391c1b46f2308bda20ea2a2dd5253725e7e2d3a1928b631338eb318eb22"},
+    {file = "fonttools-4.35.0.zip", hash = "sha256:1cfb335c0abdeb6231191dc4f9d7ce1173e2ac94b335c617e045b96f9c974aea"},
 ]
 importlib-resources = [
     {file = "importlib_resources-5.9.0-py3-none-any.whl", hash = "sha256:f78a8df21a79bcc30cfd400bdc38f314333de7c0fb619763f6b9dabab8268bb7"},
