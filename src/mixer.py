@@ -77,8 +77,6 @@ class Mixer(eqx.Module):
         y = vmap(vmap(self.linear_in, 1, 1), 2, 2)(y)
         y = multi_patch_rearrange(y, self.n_patches, self.patch_sizes)
         y = einops.rearrange(y, "c ... p -> ... (p c)", c=self.hidden_size)
-
-        y = self.norm(y)
         for block in self.blocks:
             y = block(y)
         y = self.norm(y)
