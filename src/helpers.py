@@ -11,23 +11,33 @@ def multi_patch_rearrange(tensor, n_patches, patch_sizes):
     """
     tensor is of size (channels, width, height), leaves channel first, patches from large to small
     """
-    temp = tensor
-    for n, size in zip(n_patches, patch_sizes):
-        temp = einops.rearrange(
-            temp, "... (h hp) (w wp) -> ... (h w) hp wp", h=n, w=n, hp=size, wp=size
-        )
-    return einops.rearrange(temp, "... hp wp -> ... (hp wp)")
+    temp = einops.rearrange(
+        tensor,
+        "c (Hh ph) (Ww pw) -> (c ph pw) Hh Ww",
+        ph=patch_sizes[-1],
+        pw=patch_sizes[-1],
+    )
+    for n in reversed(n_patches[1:]):
+        temp = einops.rearrange(temp, "... (H h) (W w) -> ... (h w) H W", w=n, h=n)
+    return einops.rearrange(temp, "... H W -> ... (H W)")
 
 
 @eqx.filter_jit
 def reverse_multi_patch_rearrange(tensor, n_patches, patch_sizes):
+    """
+    reverses [`multi_patch_rearrange`]
+    """
     temp = einops.rearrange(
-        tensor, "... (hp wp) -> ... hp wp", hp=patch_sizes[-1], wp=patch_sizes[-1]
+        tensor, "... (H W) -> ... H W", H=n_patches[0], W=n_patches[0]
     )
-    for n, size in reversed(list(zip(n_patches, patch_sizes))):
-        temp = einops.rearrange(
-            temp, "... (h w) hp wp -> ... (h hp) (w wp)", h=n, w=n, hp=size, wp=size
-        )
+    for n in n_patches[1:]:
+        temp = einops.rearrange(temp, "... (h w) H W -> ... (H h) (W w)", w=n, h=n)
+    temp = einops.rearrange(
+        temp,
+        "(c ph pw) Hh Ww -> c (Hh ph) (Ww pw)",
+        ph=patch_sizes[-1],
+        pw=patch_sizes[-1],
+    )
     return temp
 
 
@@ -77,7 +87,7 @@ def antivmap(fn: Callable, axis: int = 0) -> Callable:
     return wrapped_fn
 
 
-def scan(f, init, it):
+def scan(f: Callable, init, it):
     state = init
     for x in it:
         state = f(state, x)

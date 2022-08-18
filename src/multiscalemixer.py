@@ -5,7 +5,7 @@ from src.helpers import antivmap
 
 
 class MultiMixerBlock(eqx.Module):
-    """Maps a different MLP over each dimension of the input from last to first."""
+    """Maps a different MLP over each dimension of the input from first to last."""
 
     mixers: list
     norms: list
@@ -17,7 +17,7 @@ class MultiMixerBlock(eqx.Module):
         - `key`: A `jax.random.PRNGKey` used to provide randomness for parameter
             initialisation. (Keyword only argument.)
         """
-        # dimensions are put in from global to local
+        # dimensions are put in from local to global
         assert len(dimensions) == len(mlp_widths)
         mlp_keys = jr.split(key, len(dimensions))
         self.mixers = [
@@ -32,8 +32,6 @@ class MultiMixerBlock(eqx.Module):
         """
         # TODO: improve compilation time by structured control flow primitives
         # something like: lax.fori_loop(0, len(self.mixers), vmap(mixer[i], i, i)(norm[i]), y)
-        # TODO: is this really the best way to apply the mixers in reverse? It only involves
-        # changing a single line of code.
-        for i, (mixer, norm) in reversed(list(enumerate(zip(self.mixers, self.norms)))):
+        for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
             y = y + antivmap(mixer, i)(norm(y))
         return y
