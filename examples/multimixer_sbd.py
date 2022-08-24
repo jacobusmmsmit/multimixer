@@ -21,7 +21,6 @@ from src.mixer import Mixer
 
 class SBDMixer(eqx.Module):
     mixer: Mixer
-    # linear_out: eqx.nn.Linear
     t1: int
 
     def __init__(
@@ -50,7 +49,6 @@ class SBDMixer(eqx.Module):
             out_channels=c,
             key=mixer_key,
         )
-        # self.linear_out = eqx.nn.Linear(c + 1, c, key=out_key)
         self.t1 = t1
 
     def __call__(self, t, y):
@@ -58,10 +56,7 @@ class SBDMixer(eqx.Module):
         _, height, width = y.shape
         t = einops.repeat(t, "-> 1 h w", h=height, w=width)
         y = jnp.concatenate([y, t])
-        y = self.mixer(y)
-        # An extra linear layer is added to reduce the number of channels by 1
-        return y
-        # return vmap(vmap(self.linear_out, 1, 1), 2, 2)(y)
+        return self.mixer(y)
 
 
 def single_loss_fn(model, weight, int_beta, data, t, key):
