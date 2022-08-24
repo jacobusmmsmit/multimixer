@@ -16,11 +16,11 @@ import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
 
-from src.mixer import Mixer
+from multimixer import MultiMixer
 
 
 class SBDMixer(eqx.Module):
-    mixer: Mixer
+    mixer: MultiMixer
     t1: int
 
     def __init__(
@@ -39,7 +39,7 @@ class SBDMixer(eqx.Module):
         # mixer_key, out_key = jr.split(key)
         mixer_key, _ = jr.split(key)
 
-        self.mixer = Mixer(
+        self.mixer = MultiMixer(
             (c + 1, h, w),
             patch_sizes,
             hidden_size,

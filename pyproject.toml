@@ -1,22 +1,28 @@
 [tool.poetry]
-name = "multiscale-mixer"
-version = "0.2.1"
-description = ""
-authors = ["Jacobus Smit <jacobusmmsmit@gmail.com>"]
+name = "multimixer"
+version = "0.3.1"
+description = "An Equinox implementation of N-dimensional MLP-Mixers"
+authors = ["Jacobus Smit <jacobus.smit@uva.nl>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/jacobusmmsmit/multimixer"
+keywords = ["machine learning", "deep learning"]
+exclude = ["examples", "test"]
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
+jaxlib = "^0.3.15"
 jax = "^0.3.15"
 equinox = "^0.6.0"
 einops = "^0.4.1"
-jaxlib = "^0.3.15"
-matplotlib = "^3.5.2"
-diffrax = { git = "https://github.com/jacobusmmsmit/diffrax", branch = "fix-jtu-warning" }
-optax = "^0.1.3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
+matplotlib = "^3.5.2"
+optax = "^0.1.3"
+diffrax = "^0.2.1"
+flake8 = "^5.0.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

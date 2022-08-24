@@ -1,23 +1,22 @@
-import jax
 import jax.random as jr
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import einops
 
-from src.mixer import Mixer
+from multimixer.multimixer import Mixer
 
 
 def main():
     seed = 42
     key = jr.PRNGKey(seed)
-    images_key, mixer_key = jr.split(key)
+    _, mixer_key = jr.split(key)
 
-    nimages = 100
+    # nimages = 100
     nchannels = 3
     image_hw = 64
     image_size = (nchannels, image_hw, image_hw)
-    images = jr.uniform(images_key, (nimages, *image_size))
+    # images = jr.uniform(images_key, (nimages, *image_size))
     patch_sizes = [8, 4, 2]  # largest to smallest (global to local)
 
     # arbitrary settings
@@ -27,7 +26,7 @@ def main():
     ]  # auto-adjust to number of patch scales
     mix_hidden_size = 1
     num_blocks = 1
-    out_channels=3
+    out_channels = 3
 
     # This is purely to produce pretty pictures :)
     for num_blocks in [1, 5, 10]:
@@ -39,7 +38,7 @@ def main():
             mix_hidden_size,
             num_blocks,
             key=mixer_key,
-            out_channels=out_channels
+            out_channels=out_channels,
         )
 
         image = jnp.ones(image_size)

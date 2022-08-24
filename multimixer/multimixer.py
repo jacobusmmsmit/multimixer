@@ -1,17 +1,49 @@
 import jax.random as jr
 import equinox as eqx
 
-from src.multiscalemixer import MultiMixerBlock
-from src.helpers import (
+from multimixer.utils import (
+    antivmap,
     get_npatches,
-    verify_patches,
     multi_patch_rearrange,
     reverse_multi_patch_rearrange,
-    antivmap,
+    verify_patches,
 )
 
 
-class Mixer(eqx.Module):
+class MultiMixerBlock(eqx.Module):
+    """Maps a different MLP over each dimension of the input from first to last."""
+
+    mixers: list
+    norms: list
+
+    def __init__(self, dimensions, mlp_widths, *, key):
+        """**Arguments:**
+        - `dimensions`: The dimensions of the input and output.
+        - `mlp_widths`: The number of hidden layers of the MLP of each dimension.
+        - `key`: A `jax.random.PRNGKey` used to provide randomness for parameter
+            initialisation. (Keyword only argument.)
+        """
+        # dimensions are put in from local to global
+        assert len(dimensions) == len(mlp_widths)
+        mlp_keys = jr.split(key, len(dimensions))
+        self.mixers = [
+            eqx.nn.MLP(dim, dim, mlp_width, depth=1, key=mlp_key)
+            for dim, mlp_width, mlp_key in zip(dimensions, mlp_widths, mlp_keys)
+        ]
+        self.norms = [eqx.nn.LayerNorm(dimensions) for _ in dimensions]
+
+    def __call__(self, y):
+        """**Arguments**
+        - `y`: The input. Should be of shape `(dimensions)`.
+        """
+        # TODO: improve compilation time by structured control flow primitives
+        # something like: lax.fori_loop(0, len(self.mixers), vmap(mixer[i], i, i)(norm[i]), y)
+        for i, (mixer, norm) in enumerate(zip(self.mixers, self.norms)):
+            y = y + antivmap(mixer, i)(norm(y))
+        return y
+
+
+class MultiMixer(eqx.Module):
     """An MLP-Mixer with multiple patch dimensions/scales"""
 
     img_size: list
@@ -37,9 +69,11 @@ class Mixer(eqx.Module):
     ):
         """**Arguments**
         - `img_size`: The size of the input.
-        - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole image for the first).
+        - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole
+            image for the first).
         - `patch_sizes`: The side length of the square patches for each patch scale from largest to smallest.
-        - `hidden_size`: The number of channels each pixel will have during the mixing (?). A higher number potentially means more information can be transferred.
+        - `hidden_size`: The number of channels each pixel will have during the mixing (?). A higher number potentially
+            means more information can be transferred.
         - `mix_patch_sizes`: The number of hidden layers in the MLP corresponding to each patch scale.
         - `mix_hidden_size`: The number of hidden layers in the MLP corresponding to the "hidden" channels.
         - `num_blocks`: The number of Mixer blocks an input will go through.

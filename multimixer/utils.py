@@ -85,10 +85,3 @@ def antivmap(fn: Callable, axis: int = 0) -> Callable:
         return op(x)
 
     return wrapped_fn
-
-
-def scan(f: Callable, init, it):
-    state = init
-    for x in it:
-        state = f(state, x)
-        yield state

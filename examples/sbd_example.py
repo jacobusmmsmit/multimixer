@@ -1,7 +1,6 @@
 import array
 import functools as ft
 import gzip
-import itertools
 import os
 import struct
 import urllib.request
@@ -11,14 +10,10 @@ import einops  # https://github.com/arogozhnikov/einops
 import jax
 import jax.numpy as jnp
 import jax.random as jr
-from jax import lax
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 
 import equinox as eqx
-
-from src.helpers import antivmap
-from functools import partial
 
 
 class MixerBlock(eqx.Module):
