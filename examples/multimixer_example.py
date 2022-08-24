@@ -27,6 +27,7 @@ def main():
     ]  # auto-adjust to number of patch scales
     mix_hidden_size = 1
     num_blocks = 1
+    out_channels=3
 
     # This is purely to produce pretty pictures :)
     for num_blocks in [1, 5, 10]:
@@ -38,6 +39,7 @@ def main():
             mix_hidden_size,
             num_blocks,
             key=mixer_key,
+            out_channels=out_channels
         )
 
         image = jnp.ones(image_size)
