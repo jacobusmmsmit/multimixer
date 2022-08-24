@@ -49,7 +49,7 @@ class Mixer(eqx.Module):
         - `key`: A JAX PRNG key.
         """
         channels, height, width = img_size
-        if out_channels == None:
+        if out_channels is None:
             out_channels = channels
         assert height == width  # Currently square patches only, rectangular planned
         n_patches = get_npatches(width, patch_sizes)  # largest to smallest
