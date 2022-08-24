@@ -217,4 +217,4 @@ def main(
     plt.savefig("pretty_pictures/sample.png")
 
 
-main()
+main()  # Warning: this will take a long time without a GPU.
