@@ -76,7 +76,7 @@ class MultiMixer(eqx.Module):
             means more information can be transferred.
         - `mix_patch_sizes`: The number of hidden layers in the MLP corresponding to each patch scale.
         - `mix_hidden_size`: The number of hidden layers in the MLP corresponding to the "hidden" channels.
-        - `num_blocks`: The number of Mixer blocks an input will go through.
+        - `num_blocks`: The number of mixer blocks an input will go through.
 
         **Kwargs**
         - `out_channels`: The number of channels in the output.

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import einops
 
-from multimixer.multimixer import Mixer
+from multimixer import MultiMixer
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
 
     # This is purely to produce pretty pictures :)
     for num_blocks in [1, 5, 10]:
-        m = Mixer(
+        m = MultiMixer(
             image_size,
             patch_sizes,
             hidden_size,
