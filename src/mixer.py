@@ -32,6 +32,7 @@ class Mixer(eqx.Module):
         mix_hidden_size,
         num_blocks,
         *,
+        out_channels=None,
         key,
     ):
         """**Arguments**
@@ -42,8 +43,14 @@ class Mixer(eqx.Module):
         - `mix_patch_sizes`: The number of hidden layers in the MLP corresponding to each patch scale.
         - `mix_hidden_size`: The number of hidden layers in the MLP corresponding to the "hidden" channels.
         - `num_blocks`: The number of Mixer blocks an input will go through.
+
+        **Kwargs**
+        - `out_channels`: The number of channels in the output.
+        - `key`: A JAX PRNG key.
         """
         channels, height, width = img_size
+        if out_channels is None:
+            out_channels = channels
         assert height == width  # Currently square patches only, rectangular planned
         n_patches = get_npatches(width, patch_sizes)  # largest to smallest
 
@@ -63,7 +70,7 @@ class Mixer(eqx.Module):
             channels * patch_sizes[-1] ** 2, hidden_size, key=inkey
         )
         self.projection_out = eqx.nn.Linear(
-            hidden_size, channels * patch_sizes[-1] ** 2, key=outkey
+            hidden_size, out_channels * patch_sizes[-1] ** 2, key=outkey
         )
         self.blocks = [
             MultiMixerBlock(
