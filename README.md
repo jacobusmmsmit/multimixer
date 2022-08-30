@@ -2,7 +2,7 @@
 A Multi(scale)-Mixer implemented in Equinox and an example of it as a drop in replacement for a conventional MLP-Mixer.
 
 This package exports the Equinox module `MultiMixer`. Below is an example usage, more examples can be found in `examples/`.
-```
+```python
 import jax.random as jr
 import jax.numpy as jnp
 
