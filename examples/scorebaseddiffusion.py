@@ -8,13 +8,13 @@ import urllib.request
 
 import diffrax as dfx  # https://github.com/patrick-kidger/diffrax
 import einops  # https://github.com/arogozhnikov/einops
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import jax.random as jr
-from jax import vmap
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
-import equinox as eqx
+from jax import vmap
 
 from multimixer import MultiMixer
 
