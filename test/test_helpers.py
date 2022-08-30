@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 import jax.random as jr
 
-from multimixer.utils import (
+from multimixer._src.utils import (
     get_npatches,
     multi_patch_rearrange,
     reverse_multi_patch_rearrange,

@@ -1,9 +1,9 @@
 from typing import Callable
 
-import jax
-import jax.numpy as jnp
 import einops
 import equinox as eqx
+import jax
+import jax.numpy as jnp
 
 
 @eqx.filter_jit

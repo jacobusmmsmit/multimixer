@@ -1,2 +1,2 @@
 # Avoids `from multimixer.multimixer import ...`
-from .multimixer import MultiMixer  # noqa: F401
+from .multimixer import MultiMixer
