@@ -62,7 +62,7 @@ class MultiMixer(eqx.Module):
 
     def __init__(
         self,
-        mixer_dimensions,
+        mixer_dimensions,  # Should we keep the input_size for assertions?
         mixer_widths,
         num_blocks,
         *,

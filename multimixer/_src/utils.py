@@ -6,6 +6,10 @@ import jax
 import jax.numpy as jnp
 
 
+# Rearrange needs patch_sizes[-1] then reversed npatches[1:]
+# the reverse operation additionally needs npatches[0].
+# Hence, for now, I'm leaving the rearranges defined explicitly in terms of
+# patches on images. In the future we could make this rearranging input agnostic.
 @eqx.filter_jit
 def multi_patch_rearrange(tensor, n_patches, patch_sizes):
     """

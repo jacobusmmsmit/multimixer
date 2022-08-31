@@ -1,6 +1,6 @@
 import jax.random as jr
 
-from multimixer import MultiMixer
+from multimixer import ImageMixer
 
 key = jr.PRNGKey(42)
 uniform_key, mixer_key = jr.split(key)
@@ -19,7 +19,7 @@ mix_hidden_size = 1
 num_blocks = 1
 out_channels = 1
 
-my_mixer = MultiMixer(
+my_mixer = ImageMixer(
     image_size,
     patch_sizes,
     hidden_size,
