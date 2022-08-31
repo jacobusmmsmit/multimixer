@@ -71,23 +71,24 @@ class MultiMixer(eqx.Module):
     ):
         """**Arguments**
         - `input_shape`: The size of the input.
-        - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole
-            input for the first number).
-        - `patch_sizes`: The side length of the square patches for each patch scale from largest to smallest.
-        - `hidden_size`: The number of channels each pixel will have during the mixing (?). A higher number potentially
-            means more information can be transferred.
-        - `mix_patch_sizes`: The number of hidden layers in the MLP corresponding to each patch scale.
-        - `mix_hidden_size`: The number of hidden layers in the MLP corresponding to the "hidden" channels.
+        - `mixer_dimensions`: The dimensions of the mixer during the backbone operation.
+        - `mixer_widths`: The widths of each dimension's depth-1 MLP in the mixer .
         - `num_blocks`: The number of mixer blocks an input will go through.
 
         **Kwargs**
-        - `out_channels`: The number of channels in the output.
+        - `dims_per_block`: Which dimensions' MLPs to apply per block (must have length == num_blocks)
         - `key`: A JAX PRNG key.
         """
-        channels, height, width = input_shape
+        channels, height, width = input_shape  # Fine
+
+        # TODO Remove when extracting backbone
         if out_channels is None:
             out_channels = channels
-        assert height == width  # Currently square patches only, rectangular planned
+
+        # TODO Low-priority: Implement rectangular patches
+        assert height == width  # Square patches/inputs only
+
+        ##### Remove and replace with mixer_dimensions and mixer_widths input #####
         n_patches = get_npatches(width, patch_sizes)  # largest to smallest
 
         # for patch[i], n*size == size of patch[i-1]
@@ -95,6 +96,7 @@ class MultiMixer(eqx.Module):
         n_patches_square = [n**2 for n in n_patches]
         mixer_dimensions = tuple(reversed((*n_patches_square, hidden_size)))
         mixer_widths = tuple(reversed((*mix_patch_sizes, mix_hidden_size)))
+        ##### End Remove #####
 
         inkey, outkey, *bkeys = jr.split(key, 2 + num_blocks)
 
