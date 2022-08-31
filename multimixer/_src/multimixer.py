@@ -1,3 +1,5 @@
+from typing import List  # Python 3.7 compatability
+
 import equinox as eqx
 import jax.random as jr
 
@@ -13,8 +15,8 @@ from .utils import (
 class MultiMixerBlock(eqx.Module):
     """Maps a different MLP over each dimension of the input from first to last."""
 
-    mixers: list
-    norms: list
+    mixers: List[eqx.nn.MLP]
+    norms: List[eqx.nn.LayerNorm]
 
     def __init__(self, dimensions, mlp_widths, *, key):
         """**Arguments:**
@@ -46,13 +48,13 @@ class MultiMixerBlock(eqx.Module):
 class MultiMixer(eqx.Module):
     """An MLP-Mixer with multiple patch dimensions/scales"""
 
-    img_size: list
-    n_patches: list
-    patch_sizes: list
+    img_size: List[int]
+    n_patches: List[int]
+    patch_sizes: List[int]
     hidden_size: int
     projection_in: eqx.nn.Linear
     projection_out: eqx.nn.Linear
-    blocks: list
+    blocks: List[MultiMixerBlock]
     norm: eqx.nn.LayerNorm
 
     def __init__(
