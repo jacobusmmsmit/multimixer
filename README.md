@@ -1,12 +1,12 @@
 # MultiMixer
-A Multi(scale)-Mixer implemented in Equinox and an example of it as a drop in replacement for a conventional MLP-Mixer.
+A Multi(scale) MLP-Mixer module for [Equinox](https://www.github.com/patrick-kidger/equinox).
 
-This package exports the Equinox module `MultiMixer`. Below is an example usage, more examples can be found in `examples/`.
+This package exports the Equinox modules `MultiMixer` and `ImageMixer`. Below is an example usage, more examples can be found in `examples/`.
 ```python
 import jax.random as jr
 import jax.numpy as jnp
 
-from multimixer import MultiMixer
+from multimixer import ImageMixer
 
 key = jr.PRNGKey(42)
 uniform_key, mixer_key = jr.split(key)
@@ -25,7 +25,7 @@ mix_hidden_size = 1
 num_blocks = 1
 out_channels = 1
 
-my_mixer = MultiMixer(
+my_mixer = ImageMixer(
     image_size,
     patch_sizes,
     hidden_size,

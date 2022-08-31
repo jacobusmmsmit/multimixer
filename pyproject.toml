@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "multimixer"
-version = "0.3.1"
+version = "0.1.0"
 description = "An Equinox implementation of N-dimensional MLP-Mixers"
 authors = ["Jacobus Smit <jacobus.smit@uva.nl>"]
 license = "MIT"

@@ -1,2 +1,1 @@
-# Avoids `from multimixer.multimixer import ...`
-from .multimixer import MultiMixer
+from .mixers import ImageMixer, MultiMixer
