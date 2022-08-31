@@ -3,13 +3,7 @@ from typing import List  # Python 3.7 compatability
 import equinox as eqx
 import jax.random as jr
 
-from .utils import (
-    antivmap,
-    get_npatches,
-    multi_patch_rearrange,
-    reverse_multi_patch_rearrange,
-    verify_patches,
-)
+from .utils import antivmap
 
 
 class MultiMixerBlock(eqx.Module):
@@ -49,83 +43,44 @@ class MultiMixer(eqx.Module):
     """An MLP-Mixer with multiple patch dimensions/scales"""
 
     input_shape: List[int]
-    n_patches: List[int]
-    patch_sizes: List[int]
-    hidden_size: int
-    projection_in: eqx.nn.Linear
-    projection_out: eqx.nn.Linear
+    mixer_dimensions: List[int]
     blocks: List[MultiMixerBlock]
     norm: eqx.nn.LayerNorm
 
     def __init__(
         self,
-        input_shape,
-        patch_sizes,
-        hidden_size,
-        mix_patch_sizes,
-        mix_hidden_size,
+        mixer_dimensions,
+        mixer_widths,
         num_blocks,
         *,
-        out_channels=None,
+        dims_per_block=None,
         key,
     ):
         """**Arguments**
-        - `input_shape`: The size of the input.
         - `mixer_dimensions`: The dimensions of the mixer during the backbone operation.
         - `mixer_widths`: The widths of each dimension's depth-1 MLP in the mixer .
         - `num_blocks`: The number of mixer blocks an input will go through.
 
         **Kwargs**
-        - `dims_per_block`: Which dimensions' MLPs to apply per block (must have length == num_blocks)
+        - `dims_per_block`: Which dimensions' MLPs to apply per block, if None then all are applied (must have length
+            == num_blocks)
         - `key`: A JAX PRNG key.
         """
-        channels, height, width = input_shape  # Fine
+        bkeys = jr.split(key, num_blocks)
 
-        # TODO Remove when extracting backbone
-        if out_channels is None:
-            out_channels = channels
-
-        # TODO Low-priority: Implement rectangular patches
-        assert height == width  # Square patches/inputs only
-
-        ##### Remove and replace with mixer_dimensions and mixer_widths input #####
-        n_patches = get_npatches(width, patch_sizes)  # largest to smallest
-
-        # for patch[i], n*size == size of patch[i-1]
-        assert verify_patches(width, patch_sizes, n_patches)
-        n_patches_square = [n**2 for n in n_patches]
-        mixer_dimensions = tuple(reversed((*n_patches_square, hidden_size)))
-        mixer_widths = tuple(reversed((*mix_patch_sizes, mix_hidden_size)))
-        ##### End Remove #####
-
-        inkey, outkey, *bkeys = jr.split(key, 2 + num_blocks)
-
-        self.input_shape = input_shape
-        self.n_patches = n_patches
-        self.patch_sizes = patch_sizes
-        self.hidden_size = hidden_size
-        self.projection_in = eqx.nn.Linear(
-            channels * patch_sizes[-1] ** 2, hidden_size, key=inkey
-        )
-        self.projection_out = eqx.nn.Linear(
-            hidden_size, out_channels * patch_sizes[-1] ** 2, key=outkey
-        )
+        self.mixer_dimensions = mixer_dimensions
         self.blocks = [
             MultiMixerBlock(
                 mixer_dimensions,
                 mixer_widths,
+                apply_dims,
                 key=bkey,
             )
-            for bkey in bkeys
+            for apply_dims, bkey in zip(dims_per_block, bkeys)
         ]
         self.norm = eqx.nn.LayerNorm(mixer_dimensions)
 
     def __call__(self, y):
-        assert y.shape == self.input_shape
-        y = multi_patch_rearrange(y, self.n_patches, self.patch_sizes)
-        y = antivmap(self.projection_in)(y)  # nested jax.vmap
         for block in self.blocks:
             y = block(y)
-        y = self.norm(y)
-        y = antivmap(self.projection_out)(y)
-        return reverse_multi_patch_rearrange(y, self.n_patches, self.patch_sizes)
+        return self.norm(y)
