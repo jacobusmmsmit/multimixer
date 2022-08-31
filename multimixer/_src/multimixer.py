@@ -48,7 +48,7 @@ class MultiMixerBlock(eqx.Module):
 class MultiMixer(eqx.Module):
     """An MLP-Mixer with multiple patch dimensions/scales"""
 
-    img_size: List[int]
+    input_shape: List[int]
     n_patches: List[int]
     patch_sizes: List[int]
     hidden_size: int
@@ -59,7 +59,7 @@ class MultiMixer(eqx.Module):
 
     def __init__(
         self,
-        img_size,
+        input_shape,
         patch_sizes,
         hidden_size,
         mix_patch_sizes,
@@ -70,7 +70,7 @@ class MultiMixer(eqx.Module):
         key,
     ):
         """**Arguments**
-        - `img_size`: The size of the input.
+        - `input_shape`: The size of the input.
         - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole
             image for the first).
         - `patch_sizes`: The side length of the square patches for each patch scale from largest to smallest.
@@ -84,7 +84,7 @@ class MultiMixer(eqx.Module):
         - `out_channels`: The number of channels in the output.
         - `key`: A JAX PRNG key.
         """
-        channels, height, width = img_size
+        channels, height, width = input_shape
         if out_channels is None:
             out_channels = channels
         assert height == width  # Currently square patches only, rectangular planned
@@ -98,7 +98,7 @@ class MultiMixer(eqx.Module):
 
         inkey, outkey, *bkeys = jr.split(key, 2 + num_blocks)
 
-        self.img_size = img_size
+        self.input_shape = input_shape
         self.n_patches = n_patches
         self.patch_sizes = patch_sizes
         self.hidden_size = hidden_size
@@ -119,7 +119,7 @@ class MultiMixer(eqx.Module):
         self.norm = eqx.nn.LayerNorm(mixer_dimensions)
 
     def __call__(self, y):
-        assert y.shape == self.img_size
+        assert y.shape == self.input_shape
         y = multi_patch_rearrange(y, self.n_patches, self.patch_sizes)
         y = antivmap(self.projection_in)(y)  # nested jax.vmap
         for block in self.blocks:
