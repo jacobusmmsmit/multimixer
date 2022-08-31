@@ -72,7 +72,7 @@ class MultiMixer(eqx.Module):
         """**Arguments**
         - `input_shape`: The size of the input.
         - `n_patches`: The number of patches contained inside a single patch of the previous dimension (or the whole
-            image for the first).
+            input for the first number).
         - `patch_sizes`: The side length of the square patches for each patch scale from largest to smallest.
         - `hidden_size`: The number of channels each pixel will have during the mixing (?). A higher number potentially
             means more information can be transferred.
