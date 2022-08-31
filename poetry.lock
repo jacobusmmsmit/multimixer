@@ -141,7 +141,7 @@ python-versions = "*"
 
 [[package]]
 name = "equinox"
-version = "0.6.0"
+version = "0.7.0"
 description = "PyTorch-like neural networks in JAX"
 category = "main"
 optional = false
@@ -682,7 +682,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "45b6ff2083eb184770351957bc39b34f8361b668a77354b63a51111bb57282a8"
+content-hash = "3a540d4bdc8caebc36caa974f8f6bd6d769c3f2a060ec39e24a4d0145c2a995a"
 
 [metadata.files]
 absl-py = [
@@ -778,8 +778,8 @@ einops = [
     {file = "einops-0.4.1.tar.gz", hash = "sha256:65ede824fa54ce99ba969c61152f9948eb8cad08d5f0ca97c95e3804bafcce48"},
 ]
 equinox = [
-    {file = "equinox-0.6.0-py3-none-any.whl", hash = "sha256:848aa720637803bb82aa34a0c580add056c73ded1242f7992ab9c41fb0c1abf8"},
-    {file = "equinox-0.6.0.tar.gz", hash = "sha256:cfcf3c43a93988aefeac4e28a24855e535b2d630c0abc376b8b1f0f444c929ee"},
+    {file = "equinox-0.7.0-py3-none-any.whl", hash = "sha256:9f1b5f3fe900dc72cc12778210105cc11805da9355345e17bbe6b6b9ac1fd73b"},
+    {file = "equinox-0.7.0.tar.gz", hash = "sha256:9f831ca3bdefcaf599522a832202a0fef4e9c218eae1cdd5a7f4821a1b136ff1"},
 ]
 etils = [
     {file = "etils-0.7.1-py3-none-any.whl", hash = "sha256:9b5140835372e3db8b6e8d7da9e16beb2390ae6f24c253107c8127e4d2205189"},
