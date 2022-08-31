@@ -21,10 +21,10 @@ multi_patch_rearrange(img, n_patches, patch_sizes).shape
 n_patches
 
 
-def main():
+def test_rearrange_reversible():
     a = multi_patch_rearrange(img, n_patches, patch_sizes)
     b = reverse_multi_patch_rearrange(a, n_patches, patch_sizes)
     assert jnp.alltrue(img == b)
 
 
-main()
+test_rearrange_reversible()
