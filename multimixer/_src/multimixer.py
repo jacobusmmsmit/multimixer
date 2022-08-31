@@ -21,7 +21,7 @@ class MultiMixerBlock(eqx.Module):
     def __init__(self, dimensions, mlp_widths, *, key):
         """**Arguments:**
         - `dimensions`: The dimensions of the input and output.
-        - `mlp_widths`: The number of hidden layers of the MLP of each dimension.
+        - `mlp_widths`: The width of the single hidden layer in the MLP of each dimension.
         - `key`: A `jax.random.PRNGKey` used to provide randomness for parameter
             initialisation. (Keyword only argument.)
         """
