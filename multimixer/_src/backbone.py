@@ -50,6 +50,7 @@ class MultiMixerBlock(eqx.Module):
         # something like: lax.fori_loop(0, len(self.mixers), vmap(mixer[i], i, i)(norm[i]), y)
 
         for i, mixer, norm in zip(self.apply_dims, self.mixers, self.norms):
+            print(f"    Mixer {i}")
             y = y + antivmap(mixer, i)(norm(y))
         return y
 
@@ -97,6 +98,9 @@ class MultiMixer(eqx.Module):
         self.norm = eqx.nn.LayerNorm(mixer_dimensions)
 
     def __call__(self, y):
+        i = 0
         for block in self.blocks:
+            print(f"Block {i}")
             y = block(y)
+            i += 1
         return self.norm(y)
