@@ -16,11 +16,11 @@ import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 from jax import vmap
 
-from multimixer import MultiMixer
+from multimixer import ImageMixer
 
 
 class SBDMixer(eqx.Module):
-    mixer: MultiMixer
+    mixer: ImageMixer
     t1: int
 
     def __init__(
@@ -39,7 +39,7 @@ class SBDMixer(eqx.Module):
         # mixer_key, out_key = jr.split(key)
         mixer_key, _ = jr.split(key)
 
-        self.mixer = MultiMixer(
+        self.mixer = ImageMixer(
             (c + 1, h, w),
             patch_sizes,
             hidden_size,
