@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional, Sequence
 
 import equinox as eqx
 import jax.random as jr
@@ -26,15 +26,15 @@ class ImageMixer(eqx.Module):
 
     def __init__(
         self,
-        image_size,
-        patch_sizes,
-        hidden_size,
-        patch_mlp_widths,
-        hidden_mlp_width,
-        num_blocks,
+        image_size: Sequence[int],
+        patch_sizes: Sequence[int],
+        hidden_size: int,
+        patch_mlp_widths: Sequence[int],
+        hidden_mlp_width: int,
+        num_blocks: int,
         *,
-        out_channels=None,
-        dims_per_block=None,
+        out_channels: Optional[int] = None,
+        dims_per_block: Optional[Sequence[Sequence[int]]] = None,
         key,
     ):
         """**Arguments**
@@ -68,11 +68,11 @@ class ImageMixer(eqx.Module):
 
         inkey, outkey, mixer_key = jr.split(key, 3)
 
-        self.rearrange_in = jit(
-            lambda img: multi_patch_rearrange(img, n_patches, patch_sizes)
+        self.rearrange_in = lambda img: multi_patch_rearrange(
+            img, n_patches, patch_sizes
         )
-        self.rearrange_out = jit(
-            lambda img: reverse_multi_patch_rearrange(img, n_patches, patch_sizes)
+        self.rearrange_out = lambda img: reverse_multi_patch_rearrange(
+            img, n_patches, patch_sizes
         )
         self.projection_in = eqx.nn.Linear(
             channels * patch_sizes[-1] ** 2, hidden_size, key=inkey

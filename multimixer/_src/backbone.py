@@ -1,7 +1,8 @@
-from typing import List  # Python 3.7 compatability
+from typing import List, Optional, Sequence  # Python 3.7 compatability
 
 import equinox as eqx
 import jax.random as jr
+from jaxtyping import Array, Float
 
 from .utils import antivmap
 
@@ -13,7 +14,14 @@ class MultiMixerBlock(eqx.Module):
     norms: List[eqx.nn.LayerNorm]
     apply_dims: List[int]
 
-    def __init__(self, mixer_dimensions, mlp_widths, *, apply_dims=None, key):
+    def __init__(
+        self,
+        mixer_dimensions: Sequence[int],
+        mlp_widths: Sequence[int],
+        *,
+        apply_dims: Optional[Sequence[Sequence[int]]] = None,
+        key,
+    ):
         """**Arguments:**
         - `mixer_dimensions`: The mixer_dimensions of the input and output.
         - `mlp_widths`: The width of the single hidden layer in the MLP of each dimension.
@@ -42,7 +50,7 @@ class MultiMixerBlock(eqx.Module):
         self.norms = norms
         self.apply_dims = apply_dims  # Example: [0, 1]
 
-    def __call__(self, y):
+    def __call__(self, y: Float[Array, "*mixer_dimensions"]):
         """**Arguments**
         - `y`: The input. Should be of shape `(mixer_dimensions)`.
         """
@@ -62,11 +70,13 @@ class MultiMixer(eqx.Module):
 
     def __init__(
         self,
-        mixer_dimensions,  # Should we keep the input_size for assertions?
-        mixer_widths,
-        num_blocks,
+        mixer_dimensions: Sequence[
+            int
+        ],  # Should we keep the input_size for assertions?
+        mixer_widths: Sequence[int],
+        num_blocks: Sequence[int],
         *,
-        dims_per_block=None,
+        dims_per_block: Optional[Sequence[Sequence[int]]] = None,
         key,
     ):
         """**Arguments**
@@ -96,7 +106,7 @@ class MultiMixer(eqx.Module):
         ]
         self.norm = eqx.nn.LayerNorm(mixer_dimensions)
 
-    def __call__(self, y):
+    def __call__(self, y: Float[Array, "*mixer_dimensions"]):
         for block in self.blocks:
             y = block(y)
         return self.norm(y)
