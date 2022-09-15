@@ -4,6 +4,7 @@ import functools as ft
 import gzip
 import os
 import struct
+from typing import Sequence
 import urllib.request
 
 import diffrax as dfx  # https://github.com/patrick-kidger/diffrax
@@ -15,32 +16,46 @@ import jax.random as jr
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 from jax import vmap
+import numpy as np
 
 from multimixer import ImageMixer
 
 
 class SBDMixer(eqx.Module):
     mixer: ImageMixer
+    resize_projection_in: eqx.nn.Linear
+    resize_projection_out: eqx.nn.Linear
+    new_shape: Sequence[int]
     t1: int
 
     def __init__(
         self,
-        image_size,
-        patch_sizes,
-        hidden_size,
-        mix_patch_sizes,
-        mix_hidden_size,
-        num_blocks,
-        t1,
+        image_size: Sequence[int],
+        patch_sizes: Sequence[int],
+        hidden_size: int,
+        mix_patch_sizes: Sequence[int],
+        mix_hidden_size: int,
+        num_blocks: Sequence[int],
+        t1: float,
         *,
+        new_shape: Sequence[int],
         key,
     ):
-        c, h, w = image_size
-        # mixer_key, out_key = jr.split(key)
-        mixer_key, _ = jr.split(key)
+        mixer_key, resize_in_key, resize_out_key = jr.split(key, 3)
 
+        self.resize_projection_in = eqx.nn.Linear(
+            np.prod([image_size[0] + 1, *image_size[1:]]),
+            np.prod(new_shape),
+            key=resize_in_key,
+        )
+        self.resize_projection_out = eqx.nn.Linear(
+            np.prod(new_shape),
+            np.prod(image_size),
+            key=resize_out_key,
+        )
+        c, h, w = new_shape
         self.mixer = ImageMixer(
-            (c + 1, h, w),
+            (c, h, w),
             patch_sizes,
             hidden_size,
             mix_patch_sizes,
@@ -49,6 +64,7 @@ class SBDMixer(eqx.Module):
             out_channels=c,
             key=mixer_key,
         )
+        self.new_shape = new_shape
         self.t1 = t1
 
     def __call__(self, t, y):
@@ -56,7 +72,16 @@ class SBDMixer(eqx.Module):
         _, height, width = y.shape
         t = einops.repeat(t, "-> 1 h w", h=height, w=width)
         y = jnp.concatenate([y, t])
-        return self.mixer(y)
+        c, h, w = y.shape
+        y = einops.rearrange(y, "c h w -> (c h w)", c=c, h=h, w=w)
+        y = self.resize_projection_in(y)
+        ns = self.new_shape
+        y = einops.rearrange(y, "(ch he wi) -> ch he wi", ch=ns[0], he=ns[1], wi=ns[2])
+        y = self.mixer(y)
+        y = einops.rearrange(y, "ch he wi -> (ch he wi)", ch=ns[0], he=ns[1], wi=ns[2])
+        y = self.resize_projection_out(y)
+        y = einops.rearrange(y, "(c h w) -> c h w", c=c - 1, h=h, w=w)
+        return y
 
 
 def single_loss_fn(model, weight, int_beta, data, t, key):
@@ -148,7 +173,7 @@ def main(
     num_blocks=4,
     t1=10.0,
     # Optimisation hyperparameters
-    num_steps=1_000,
+    num_steps=1,
     lr=3e-4,
     batch_size=256,
     print_every=10,
@@ -176,6 +201,7 @@ def main(
         mix_hidden_size,
         num_blocks,
         t1,
+        new_shape=[2, 28 * 2, 28 * 2],
         key=model_key,
     )
     int_beta = lambda t: t  # Try experimenting with other options here!
