@@ -14,7 +14,7 @@ exclude = ["examples", "test"]
 python = "^3.7"
 jaxlib = "^0.3.15"
 jax = "^0.3.15"
-equinox = "^0.7.0"
+equinox = "^0.8.0"
 einops = "^0.4.1"
 jaxtyping = "^0.2.0"
 
