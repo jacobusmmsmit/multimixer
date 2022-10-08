@@ -2,7 +2,6 @@ from typing import Callable, Optional, Sequence
 
 import equinox as eqx
 import jax.random as jr
-from jax import jit
 
 from .backbone import MultiMixer
 from .utils import (
