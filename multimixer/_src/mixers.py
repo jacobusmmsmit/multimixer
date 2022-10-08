@@ -14,7 +14,6 @@ from .utils import (
 )
 
 
-# TODO re-implement image multimixer
 class ImageMixer(eqx.Module):
     """A MultiMixer for 3D tensors"""
 
