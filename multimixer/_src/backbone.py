@@ -2,6 +2,7 @@ from typing import List, Optional, Sequence  # Python 3.7 compatability
 
 import equinox as eqx
 import jax.random as jr
+from jax import lax, vmap
 from jaxtyping import Array, Float
 
 from .utils import antivmap
@@ -54,9 +55,6 @@ class MultiMixerBlock(eqx.Module):
         """**Arguments**
         - `y`: The input. Should be of shape `(mixer_dimensions)`.
         """
-        # TODO: improve compilation time by structured control flow primitives
-        # something like: lax.fori_loop(0, len(self.mixers), vmap(mixer[i], i, i)(norm[i]), y)
-
         for i, mixer, norm in zip(self.apply_dims, self.mixers, self.norms):
             y = y + antivmap(mixer, i)(norm(y))
         return y
