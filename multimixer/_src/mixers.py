@@ -2,7 +2,6 @@ from typing import Callable, Optional, Sequence
 
 import equinox as eqx
 import jax.random as jr
-from jax import jit
 
 from .backbone import MultiMixer
 from .utils import (
@@ -14,7 +13,6 @@ from .utils import (
 )
 
 
-# TODO re-implement image multimixer
 class ImageMixer(eqx.Module):
     """A MultiMixer for 3D tensors"""
 
