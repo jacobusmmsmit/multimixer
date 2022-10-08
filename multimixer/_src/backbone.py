@@ -2,9 +2,11 @@ from typing import List, Optional, Sequence  # Python 3.7 compatability
 
 import equinox as eqx
 import jax.random as jr
-from jaxtyping import Array, Float
 
 from .utils import antivmap
+
+# from jaxtyping import Array, Float
+
 
 
 class MultiMixerBlock(eqx.Module):
@@ -50,7 +52,7 @@ class MultiMixerBlock(eqx.Module):
         self.norms = norms
         self.apply_dims = apply_dims  # Example: [0, 1]
 
-    def __call__(self, y: Float[Array, " *self.mixer_dimensions"]):
+    def __call__(self, y):  # : Float[Array, " *self.mixer_dimensions"]
         """**Arguments**
         - `y`: The input. Should be of shape `(mixer_dimensions)`.
         """
@@ -103,7 +105,7 @@ class MultiMixer(eqx.Module):
         ]
         self.norm = eqx.nn.LayerNorm(mixer_dimensions)
 
-    def __call__(self, y: Float[Array, " *mixer_dimensions"]):
+    def __call__(self, y):  # : Float[Array, " *self.mixer_dimensions"]
         for block in self.blocks:
             y = block(y)
         return self.norm(y)
