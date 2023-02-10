@@ -37,3 +37,8 @@ my_mixer = ImageMixer(
 )
 my_mixer(image)
 ```
+
+To develop and contribute to this package run the following command to install the dependencies for development and running examples and tests:
+```
+pip install .[dev]
+```
