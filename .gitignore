@@ -3,5 +3,6 @@
 /pretty_pictures
 **/__pycache__
 branch_goals.md
-build/
+/build
 multimixer.egg-info
+/dist
