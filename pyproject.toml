@@ -51,7 +51,7 @@ dev = [
 
 [tool.isort]
 profile = "black"
-src_paths = ["multimixer", "test"]
-force_alphabetical_sort_within_sections = true
-lines_after_imports = 2
-treat_comments_as_code = true
+src_paths = ["src", "experiments"]
+force_alphabetical_sort_within_sections = "true"
+lines_after_imports = "2"
+treat_comments_as_code = "true"
