@@ -5,8 +5,8 @@ import jax.random as jr
 
 from .utils import antivmap
 
-# from jaxtyping import Array, Float
 
+# from jaxtyping import Array, Float
 
 
 class MultiMixerBlock(eqx.Module):

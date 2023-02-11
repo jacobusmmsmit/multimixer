@@ -1,11 +1,11 @@
 import jax.numpy as jnp
 import jax.random as jr
-
 from multimixer._src.utils import (
     get_npatches,
     multi_patch_rearrange,
     reverse_multi_patch_rearrange,
 )
+
 
 key = jr.PRNGKey(42)
 gen_key, linear_key = jr.split(key)

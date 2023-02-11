@@ -15,7 +15,6 @@ import jax.random as jr
 import matplotlib.pyplot as plt
 import optax  # https://github.com/deepmind/optax
 from jax import vmap
-
 from multimixer import ImageMixer
 
 

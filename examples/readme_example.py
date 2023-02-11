@@ -1,6 +1,6 @@
 import jax.random as jr
-
 from multimixer import ImageMixer
+
 
 key = jr.PRNGKey(42)
 uniform_key, mixer_key = jr.split(key)
